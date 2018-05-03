@@ -1,0 +1,168 @@
+trigger CaseMetric on Case (after insert,after update) {
+    List<TimeLaps__c> upsertdata=new List<TimeLaps__c>();
+    Public Double finalval;
+    try{
+        //RecordType Should be only ESAS Verticals
+        for(Case op:Trigger.new)
+        {
+            String statusval = 'Closed';
+            String currentstatus=op.Status;
+            Boolean status = currentstatus.contains(statusval);
+            if(op.Status!=Null)
+            {
+                //If the previous owner is not equal to current record then and create a new record
+                //@@trigger will fire when case owner is updated 
+                if(trigger.oldMap.get(op.Id).Case_Owner__c!= op.Case_Owner__c)
+                {
+                    TimeLaps__c	 mapp=new TimeLaps__c();
+                    mapp.Case__c=op.Id;
+                    mapp.Status__c=op.Status;
+                    mapp.CaseOwner__c=op.Case_Owner__c;
+                    mapp.Start_Time__c=System.now();
+                    mapp.Notes__c='Owner Changed';
+                    upsertdata.add(mapp);
+                    //EndTime will be updated on Old Case Owner 
+                    //@@Previous owner time caluclation
+                    for(TimeLaps__c olddata:[SELECT id,CaseOwner__c from TimeLaps__c WHERE Case__c=:op.Id ])
+                    {
+                        olddata.Id=olddata.Id;
+                        olddata.Status__c=op.Status;
+                        olddata.End_Time__c=System.now();
+                        olddata.Notes__c='Case Update EndTime';
+                        upsertdata.add(olddata);
+                    } 
+                }
+                //The record will be created for the first time when a case is created.
+                //@@Intial Record creation when case is created
+                else if(op.Status=='New')
+                {
+                    Integer count=[SELECT count()  from TimeLaps__c WHERE Case__c=:op.Id];
+                    System.debug('Count'+count);    
+                    if(count<=0)
+                    {
+                        TimeLaps__c	 Firstmapp=new TimeLaps__c();
+                        Firstmapp.Case__c=op.Id;
+                        Firstmapp.Status__c=op.Status;
+                        Firstmapp.CaseOwner__c=op.Case_Owner__c;
+                        Firstmapp.Start_Time__c=System.now();
+                        Firstmapp.Notes__c='New Time';
+                        upsertdata.add(Firstmapp);
+                    }
+                }
+                //It will update the status on New Onwer Record 
+                //Update Current Status on the Record
+                else  if(trigger.oldMap.get(op.Id).Case_Owner__c == op.Case_Owner__c && op.Status!='Closed')
+                {
+                    for(TimeLaps__c olddata:[SELECT id,CaseOwner__c,Start_Time__c from TimeLaps__c WHERE Case__c=:op.Id AND End_Time__c=NULL])
+                    {
+                        olddata.Status__c=op.Status;
+                        olddata.Notes__c='Case Update Status';
+                        upsertdata.add(olddata);
+                    } 
+                }//When the Case Status is set to Closed the below code will fire with endtime
+                else  if(status==true && trigger.oldMap.get(op.Id).Case_Owner__c == op.Case_Owner__c)
+                {
+                    for(TimeLaps__c olddata:[SELECT id,CaseOwner__c,placeholderage__c,NewStatus__c from TimeLaps__c WHERE Case__c=:op.Id ])
+                    {
+                        olddata.Id=olddata.Id;
+                        olddata.Status__c=op.Status;
+                        olddata.End_Time__c=System.now();
+                        olddata.Notes__c='Case is Closed';
+                        olddata.NewStatus__c=olddata.placeholderage__c;
+                        upsertdata.add(olddata);
+                    }
+                }
+            }
+        }
+        upsert upsertdata;
+    } catch(Exception e) 
+    {
+        System.debug( 'Exception : ' + e.getMessage());
+    }
+    try{
+        List<TimeLaps__c> upsertoldata=new List<TimeLaps__c>();
+        for(Case op:Trigger.new)
+        {
+        //   List<TimeLaps__c> age=(SELECT id,CaseOwner__c,Start_Time__c,placeholderage__c from TimeLaps__c WHERE Case__c=:op.Id AND End_Time__c=NULL);
+          
+            if(trigger.oldMap.get(op.Id).Case_Owner__c == op.Case_Owner__c && op.Status=='New')
+                {
+                    for(TimeLaps__c olddata:[SELECT id,CaseOwner__c,Start_Time__c,placeholderage__c from TimeLaps__c WHERE Case__c=:op.Id AND End_Time__c=NULL])
+                    {
+                        olddata.Status__c=op.Status;
+                        olddata.Notes__c='Case Update Age';
+                        olddata.NewStatus__c=age.placeholderage__c;
+                        upsertoldata.add(olddata);
+                    } 
+                }
+          else  if(trigger.oldMap.get(op.Id).Case_Owner__c == op.Case_Owner__c && op.Status=='Open')
+            {
+                
+                    
+            }
+            else if(trigger.oldMap.get(op.Id).Case_Owner__c == op.Case_Owner__c && op.Status=='In Progress')
+            {
+                
+            }
+            else if(trigger.oldMap.get(op.Id).Case_Owner__c == op.Case_Owner__c && op.Status=='Develop')
+            {
+                
+            }
+            else if(trigger.oldMap.get(op.Id).Case_Owner__c == op.Case_Owner__c && op.Status=='On Hold')
+            {
+                
+            }
+            else if(trigger.oldMap.get(op.Id).Case_Owner__c == op.Case_Owner__c && op.Status=='On Hold - Freeze')
+            {
+                
+            }else if(trigger.oldMap.get(op.Id).Case_Owner__c == op.Case_Owner__c && op.Status=='Ready for Review')
+            {
+                
+            }
+            else if(trigger.oldMap.get(op.Id).Case_Owner__c == op.Case_Owner__c && op.Status=='Waiting for IT Approval')
+            {
+                
+            } 
+            else if(trigger.oldMap.get(op.Id).Case_Owner__c == op.Case_Owner__c && op.Status=='Waiting for Business Approval')
+            {
+                
+            }
+            else if(trigger.oldMap.get(op.Id).Case_Owner__c == op.Case_Owner__c && op.Status=='Waiting for response from User')
+            {
+                
+            }
+            else if(trigger.oldMap.get(op.Id).Case_Owner__c == op.Case_Owner__c && op.Status=='Release Ready')
+            {
+                
+            }
+            else if(trigger.oldMap.get(op.Id).Case_Owner__c == op.Case_Owner__c && op.Status=='Pending Approval')
+            {
+                
+            }
+           else if(trigger.oldMap.get(op.Id).Case_Owner__c == op.Case_Owner__c && op.Status=='Closed')
+            {
+                
+            }
+          else if(trigger.oldMap.get(op.Id).Case_Owner__c == op.Case_Owner__c && op.Status=='Closed - Cancelled')
+            {
+                
+            }
+         else if(trigger.oldMap.get(op.Id).Case_Owner__c == op.Case_Owner__c && op.Status=='(Closed) - No Response from User')
+            {
+                
+            }
+        else if(trigger.oldMap.get(op.Id).Case_Owner__c == op.Case_Owner__c && op.Status=='Closed - Duplicate')
+            {
+                
+            }
+         else if(trigger.oldMap.get(op.Id).Case_Owner__c == op.Case_Owner__c && op.Status=='Closed - By User')
+            {
+                
+            } 
+        }
+         upsert upsertoldata; 
+    }catch(Exception e) 
+    {
+        System.debug( 'Exception : ' + e.getMessage());
+    }
+}
